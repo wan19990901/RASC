@@ -103,10 +103,9 @@ if __name__ == '__main__':
     file_path = os.path.join(DATA_DIR, 'final_extracted_train.json')
     df_with_features = pd.read_json(file_path, lines=True)
     # Define the features list
-    feature_li = ['LEN', 'QUA_IM', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT', 'STEP_COHERENCE']
-
-    # Continue with the rest of the script
-    # coe = [0, -10, -2, 3, 1, 2]
+    feature_li = ['LEN', 'QUA_IM', 'SIM_COT_BIGRAM', 'SIM_AC_BIGRAM', 'SIM_INPUT', 'STEP_COUNT', 'STEP_COHERENCE'] # use 8 features as examples
+    # feature_li = ['LEN', 'QUA_IM', 'DIF_IV', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT',  'STEP_COHERENCE'] 
+    # coe = [0, -10, -2, 3, 1, 2, 1 , -2 , -3]
     # intercept = -1
     # df_cs = customized_LR_model(df_with_features,feature_li,coe, intercept, report_auroc=True)
     df_cs = trained_LR_model(df_with_features, feature_li, report_auroc=False)

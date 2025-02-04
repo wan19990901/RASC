@@ -15,35 +15,6 @@ nltk.download('punkt')
 nltk.download('stopwords')
 
 
-def count_steps(text):
-    return len(re.findall(r'Step \d+:', str(text)))
-
-def average_step_length(text):
-    steps = re.split(r'Step \d+:', str(text))[1:]
-    step_lengths = [len(word_tokenize(step)) for step in steps]
-    return sum(step_lengths) / len(step_lengths) if step_lengths else 0
-
-def mathematical_term_density(text):
-    words = word_tokenize(str(text).lower())
-    math_terms = ['calculate', 'number', 'integer', 'digit', 'product', 'divide', 'probability']
-    math_term_count = sum(1 for word in words if word in math_terms)
-    return math_term_count / len(words) if words else 0
-
-def imperative_density(text):
-    words = word_tokenize(str(text).lower())
-    imperative_verbs = ['calculate', 'find', 'determine', 'compute', 'divide', 'multiply', 'add', 'subtract', 'output']
-    imperative_count = sum(1 for word in words if word in imperative_verbs)
-    return imperative_count / len(words) if words else 0
-
-def consecutive_step_coherence(text):
-    steps = re.split(r'Step \d+:', str(text))[1:]
-    coherence_scores = []
-    for i in range(len(steps) - 1):
-        step1_words = set(word_tokenize(steps[i].lower()))
-        step2_words = set(word_tokenize(steps[i+1].lower()))
-        common_words = step1_words.intersection(step2_words)
-        coherence_scores.append(len(common_words) / len(step1_words.union(step2_words)))
-    return sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -54,7 +25,19 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NpEncoder, self).default(obj)
-def extract_sim(df,method = 'bigram',emb='jaccard'):
+def count_steps(text): # Num-of-Steps (rt) 
+    return len(re.findall(r'Step \d+:', str(text)))
+
+def consecutive_step_coherence(text): # Step-Relevance
+    steps = re.split(r'Step \d+:', str(text))[1:]
+    coherence_scores = []
+    for i in range(len(steps) - 1):
+        step1_words = set(word_tokenize(steps[i].lower()))
+        step2_words = set(word_tokenize(steps[i+1].lower()))
+        common_words = step1_words.intersection(step2_words)
+        coherence_scores.append(len(common_words) / len(step1_words.union(step2_words)))
+    return sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0
+def extract_sim(df,method = 'bigram',emb='jaccard'): # Local or Global Consistency (reasoning process)
     if method == 'bigram':
         return calculate_similarity_with_bigram(df,method=emb)
     elif method == 'agg':
@@ -87,7 +70,7 @@ def extract_cot_answer(df):
     cot_answer_arr = tmp_arr.T
     return cot_answer_arr,binary_arr
 
-def extract_sim_input(df, method='jaccard'):
+def extract_sim_input(df, method='jaccard'): # Question-Relevance
     # Get the 'Question' column as a list
     questions = df['Question'].tolist()
     
@@ -109,7 +92,7 @@ def extract_sim_input(df, method='jaccard'):
     
     return similarity_scores
 
-def extract_len(df):
+def extract_len(df): # RP-Length 
     step_count_buffer = []
     for col in df:
         if col.startswith('CoT_'):
@@ -134,7 +117,7 @@ def extract_len(df):
     step_count = np.array(step_count_buffer).T
     return step_count
 
-def extract_IM(df):
+def extract_IM(df): # Error-Admitting
     mistake_buffer = []
     for col in df:
         if col.startswith('CoT_'):
@@ -153,7 +136,7 @@ def extract_IM(df):
     return mistakes
 
 
-def extract_IV(df):
+def extract_IV(df): # Parsing-Error; This is unique and can be obtained by using our code.
     instruction_buffer = []
     for col in df:
         if col.startswith('Final Answer_'):
@@ -166,7 +149,7 @@ def extract_IV(df):
     instruction_error = np.array(instruction_buffer).T
     return instruction_error
 
-def extract_AC(arr, method='bigram'):
+def extract_AC(arr, method='bigram'): # Local or Global Consistency (answer)
     consistency_checks = np.full(arr.shape, 0, dtype=int)
     if method == 'bigram':
         consistency_checks[:, 1:] = 1 * (arr[:, 1:] == arr[:, :-1])
@@ -269,12 +252,6 @@ def extract_feature(df, features_li):
                 feature_dict[feature].append(IM[row].tolist())
             elif feature == 'STEP_COUNT':
                 feature_dict[feature].append([count_steps(cot) for cot in df.iloc[row][[col for col in df.columns if col.startswith('CoT_')]]])
-            elif feature == 'AVG_STEP_LENGTH':
-                feature_dict[feature].append([average_step_length(cot) for cot in df.iloc[row][[col for col in df.columns if col.startswith('CoT_')]]])
-            elif feature == 'MATH_TERM_DENSITY':
-                feature_dict[feature].append([mathematical_term_density(cot) for cot in df.iloc[row][[col for col in df.columns if col.startswith('CoT_')]]])
-            elif feature == 'IMPERATIVE_DENSITY':
-                feature_dict[feature].append([imperative_density(cot) for cot in df.iloc[row][[col for col in df.columns if col.startswith('CoT_')]]])
             elif feature == 'STEP_COHERENCE':
                 feature_dict[feature].append([consecutive_step_coherence(cot) for cot in df.iloc[row][[col for col in df.columns if col.startswith('CoT_')]]])
 
@@ -289,7 +266,7 @@ if __name__ == '__main__':
     # input_file_path = os.path.join(DATA_DIR, 'GSM8K_LTM.csv')
     df = pd.read_csv(input_file_path).reset_index(drop=True)
     print(df.shape)
-    feature_li = ['LEN', 'QUA_IM', 'DIF_IV', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT', 'AVG_STEP_LENGTH', 'MATH_TERM_DENSITY', 'IMPERATIVE_DENSITY', 'STEP_COHERENCE'] # This can be updated
+    feature_li = ['LEN', 'QUA_IM', 'DIF_IV', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT',  'STEP_COHERENCE']  # This can be updated; Remove SIM_COT_AGG abd SIM_COT_BiG if running on many samples of CoTs
     data = extract_feature(df,feature_li)
     df_to_save = pd.DataFrame(data)
 

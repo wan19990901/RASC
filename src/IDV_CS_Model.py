@@ -55,13 +55,13 @@ def train_test_split_stratify(df,test_size,random_state):
     train_df = train_df.drop(columns=['Stratify'])
     test_df = test_df.drop(columns=['Stratify'])
     # Display the result
-    print("Train DataFrame:")
-    print(train_df['Model'].value_counts())
-    print(train_df['Name'].value_counts())
+    # print("Train DataFrame:")
+    # print(train_df['Model'].value_counts())
+    # print(train_df['Name'].value_counts())
 
-    print("\nTest DataFrame:")
-    print(test_df['Model'].value_counts())
-    print(test_df['Name'].value_counts())
+    # print("\nTest DataFrame:")
+    # print(test_df['Model'].value_counts())
+    # print(test_df['Name'].value_counts())
     return train_df,test_df
 
 
@@ -191,7 +191,7 @@ def trained_NB_model(df_raw, feature_li, test_size=0.3, random_state=2024, repor
 if __name__ == '__main__':
     file_path = os.path.join(DATA_DIR, 'final_extracted.json')
     df_with_features = pd.read_json(file_path, lines=True)
-    feature_li =['LEN','QUA_IM','DIF_IV','SIM_INPUT','SIM_COT_BIGRAM']
+    feature_li =['LEN','QUA_IM','DIF_IV','SIM_INPUT','SIM_COT_BIGRAM'] # Using 5 features as examples
     coe = [-5,-3,-1,1,1,1]
     intercept = -2.5
     df = trained_LR_model(df_with_features,feature_li, report_auroc=True,train_mode=True)

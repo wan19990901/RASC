@@ -81,11 +81,13 @@ The `experiment_collection` directory contains all experimental results presente
 
 If you use this code in your research, please cite our paper:
 ```bibtex
-@article{RASC2024,
-  title={RASC: Reasoning-Aware Self-Consistency for Efficient and Faithful LLM Reasoning},
-  author={Anonymous},
-  journal={ACL submission},
-  year={2024}
+@inproceedings{
+anonymous2025rasc,
+title={{RASC}: Reasoning-Aware Self-Consistency for Efficient and Faithful {LLM} Reasoning},
+author={Guangya Wan, Yuqi Wu, Jie Chen, Sheng Li},
+booktitle={The 2025 Annual Conference of the Nations of the Americas Chapter of the ACL},
+year={2025},
+url={https://openreview.net/forum?id=ykXCRWB8DR}
 }
 ```
 
@@ -95,4 +97,4 @@ For questions and feedback, please open an issue in this repository.
 
 ## Acknowledgments
 
-We thank all contributors and reviewers who helped improve this work.
+We thank all ARR reviewers who helped improve this work.

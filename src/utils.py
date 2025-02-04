@@ -21,6 +21,7 @@ import statsmodels.api as sm
 from sklearn.metrics import roc_auc_score,roc_curve,f1_score
 from sklearn.linear_model import LogisticRegression
 from adaptive_consistency import AC, BetaStoppingCriteria
+import time
 
 
 NUM_OF_SAMPLES = 500
@@ -437,11 +438,12 @@ def calculate_SC_correctness(df):
 
 
 def calculate_ES_correctness(df, window_size):
+    start_time = time.time()
+    
     def evaluate_window(answers, correct):
         steps = window_size - 1
         window_size_adjusted = min(window_size, len(answers))
 
-        # Convert answers to floats if possible, otherwise keep as strings
         converted_answers = []
         for answer in answers:
             try:
@@ -449,7 +451,6 @@ def calculate_ES_correctness(df, window_size):
             except ValueError:
                 converted_answers.append(answer.strip().lower())
 
-        # Convert correct answer to float if possible
         try:
             correct_float = float(correct)
         except ValueError:
@@ -469,14 +470,20 @@ def calculate_ES_correctness(df, window_size):
     result = df.apply(lambda row: evaluate_window(row['CoT answers'], row['correct answer']), axis=1)
     df['ES_correctness'] = result.apply(lambda x: x[0])
     df['ES_steps'] = result.apply(lambda x: x[1])
+    
+    end_time = time.time()
+    execution_time = end_time - start_time
+    
+    print(f"ES execution time: {execution_time:.4f} seconds")
+    return df, execution_time
 
-    return df
 def calculate_ASC_correctness(df, beta=0.95):
+    start_time = time.time()
+    
     def majority_and_length(answers):
         if not answers:
             return None, 0
         
-        # Convert answers to floats if possible, otherwise keep as strings
         converted_answers = []
         for answer in answers:
             try:
@@ -495,7 +502,6 @@ def calculate_ASC_correctness(df, beta=0.95):
         answers = row['CoT answers']
         correct_answer = row['correct answer']
         
-        # Convert correct answer to float if possible
         try:
             correct_float = float(correct_answer)
         except ValueError:
@@ -511,8 +517,12 @@ def calculate_ASC_correctness(df, beta=0.95):
 
     df['asc_correctness'] = asc_correctness
     df['asc_steps'] = asc_steps
-
-    return df
+    
+    end_time = time.time()
+    execution_time = end_time - start_time
+    
+    print(f"ASC execution time: {execution_time:.4f} seconds")
+    return df, execution_time
 
 def concatenate_columns(df, data_columns, outcome_column):
     # Initialize an empty dictionary to store the concatenated data
