@@ -131,9 +131,9 @@ if __name__ == '__main__':
                       help='Directory containing the question datasets')
     parser.add_argument('--dataset_name', default='GSM8K',
                       help='Name of the dataset to evaluate')
-    parser.add_argument('--num_samples', type=int, default=100,
+    parser.add_argument('--num_samples', type=int, default=10,
                       help='Number of questions to evaluate (default: 100)')
-    parser.add_argument('--num_cot', type=int, default=40,
+    parser.add_argument('--num_cot', type=int, default=4,
                       help='Number of chain-of-thought generations per question (default: 40)')
     
     # LLM configuration
@@ -148,7 +148,7 @@ if __name__ == '__main__':
                       help='File containing prompt template')
     parser.add_argument('--temperature', type=float, default=0.5,
                       help='Temperature parameter for LLM')
-    parser.add_argument('--start_index', type=int, default=12,
+    parser.add_argument('--start_index', type=int, default=0,
                       help='Starting index for processing questions')
     
     args = parser.parse_args()

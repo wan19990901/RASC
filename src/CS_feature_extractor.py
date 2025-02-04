@@ -260,8 +260,8 @@ def extract_feature(df, features_li):
 
 if __name__ == '__main__':
     
-    DATA_DIR = "../data/CoT_data/"
-    input_file_path = os.path.join(DATA_DIR, 'final.csv') # Change to other files for replication
+    DATA_DIR = "../data/Evaluation_CoTs/sample_data/"
+    input_file_path = os.path.join(DATA_DIR, 'GSM8K_GPT4o_mini.csv') # Change to other files for replication
     # DATA_DIR = "../data/Evaluation_CoTs/gpt-4o-mini" 
     # input_file_path = os.path.join(DATA_DIR, 'GSM8K_LTM.csv')
     df = pd.read_csv(input_file_path).reset_index(drop=True)
@@ -283,7 +283,7 @@ if __name__ == '__main__':
     os.makedirs(storage_dir, exist_ok=True)
 
     # Save df_to_save before prepare_df
-    output_file_name_before = 'final_extracted_LTM.json'
+    output_file_name_before = 'test.json'
     file_store_path_before = os.path.join(storage_dir, output_file_name_before)
     df.to_json(file_store_path_before, orient='records', lines=True)
     print(f'File saved in : {file_store_path_before}')
