@@ -144,7 +144,7 @@ if __name__ == '__main__':
                       help='File containing API key')
     parser.add_argument('--model', default='gpt-4o-mini',
                       help='Name of the model to use')
-    parser.add_argument('--prompt_file', default='zero_CoT.json',
+    parser.add_argument('--prompt_file', default='prompt_file/zero_CoT.json',
                       help='File containing prompt template')
     parser.add_argument('--temperature', type=float, default=0.5,
                       help='Temperature parameter for LLM')
