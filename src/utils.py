@@ -475,7 +475,7 @@ def calculate_ES_correctness(df, window_size):
     execution_time = end_time - start_time
     
     print(f"ES execution time: {execution_time:.4f} seconds")
-    return df, execution_time
+    return df
 
 def calculate_ASC_correctness(df, beta=0.95):
     start_time = time.time()
@@ -522,7 +522,7 @@ def calculate_ASC_correctness(df, beta=0.95):
     execution_time = end_time - start_time
     
     print(f"ASC execution time: {execution_time:.4f} seconds")
-    return df, execution_time
+    return df
 
 def concatenate_columns(df, data_columns, outcome_column):
     # Initialize an empty dictionary to store the concatenated data
