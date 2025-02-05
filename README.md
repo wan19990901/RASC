@@ -1,45 +1,54 @@
 # RASC: Reasoning-Aware Self-Consistency for LLM Reasoning
 
-This repository contains the implementation of the Reasoning-Aware Self-Consistency (RASC) framework, a novel approach that enhances sampling efficiency and reasoning faithfulness in Large Language Models (LLMs) by dynamically evaluating both outputs and rationales.
+A novel framework that enhances sampling efficiency and reasoning faithfulness in Large Language Models (LLMs) through dynamic evaluation of outputs and rationales.
 
 ## Overview
 
-RASC is designed to improve the efficiency and faithfulness of LLM reasoning by:
+RASC (Reasoning-Aware Self-Consistency) is designed to revolutionize LLM reasoning by:
 - Dynamically evaluating both reasoning paths and final answers
-- Optimizing sampling efficiency while maintaining accuracy
-- Enabling more informed sampling decisions and rationale selection
-- Reducing sample usage by 60-80% while maintaining accuracy compared to existing methods
+- Optimizing sampling efficiency while maintaining high accuracy 
+- Implementing intelligent sampling decisions and rationale selection
+- Providing a comprehensive framework for reasoning assessment
 
 ## Repository Structure
 
 ```
 ├── src/
-│   ├── experiment_collection/    # Contains experimental results presented in the paper
-│   ├── CS_based_early_stopping.py   # Implementation of early stopping mechanism
-│   ├── CS_feature_extractor.py      # Feature extraction for reasoning evaluation
-│   ├── IDV_CS_Model.py              # Core RASC model implementation
-│   ├── LLM_agent.py                 # Interface for LLM interactions
-│   ├── Parsers.py                   # Parsing utilities for model outputs
-│   ├── SC_generator.py              # Self-consistency sample generation
+│   ├── experiment_collection/    # Experimental results from the paper
+│   ├── prompt_file/             # System prompts and templates
+│   ├── CS_based_early_stopping.py   # Early stopping implementation
+│   ├── CS_feature_extractor.py      # Reasoning evaluation feature extraction
+│   ├── IDV_CS_Model.py              # Core reasoning evaluation model
+│   ├── LLM_agent.py                 # LLM interaction interface
+│   ├── Parsers.py                   # Output parsing utilities
+│   ├── SC_generator.py              # Self-consistency sample generator
 │   ├── data_cleaning.py             # Data preprocessing utilities
-│   ├── experiment.sh                # Experiment execution script
+│   ├── experiment.sh                # Full experiment execution script
 │   ├── human_eval.md                # Human evaluation guidelines
+│   ├── demo.ipynb                   # Getting started demonstration
 │   └── utils.py                     # Utility functions
 ├── data/
-│   ├── question_data/               # Original question samples
-│   │   └── preprocessed/            # Preprocessed question data
-│   ├── other_data.txt              # Additional data files
-│   └── result/                      # Experimental results
+│   ├── question_data/               # Original question datasets
+│   │   └── preprocessed/            # Processed question data
+│   ├── other_data.txt              # Supplementary data files
+│   └── Evaluation_CoTs/sample_data  # Test sample data
+├── result/
+│   ├── experiments_output/          # Experimental results
+│   └── Human_eval_data/             # CoT faithfulness evaluation data
 └── requirements.txt                 # Project dependencies
 ```
 
+
 ## Features
 
-- Implementation of the RASC framework for efficient LLM reasoning
-- Support for multiple LLM models (LLAMA2-7B, GPT3.5-turbo/GPT4, Vicuna-13B)
-- Comprehensive feature extraction for reasoning quality assessment
-- Early stopping mechanisms for optimized sampling
-- Evaluation tools including human evaluation protocols
+- **Multi-Model Support**: Compatible with various LLM platforms including:
+  - LLAMA (via ollama)
+  - OpenAI models
+  - Anthropic's Claude
+- **Advanced Analysis Tools**: 
+  - Comprehensive feature extraction for reasoning assessment
+  - Optimized sampling with early stopping mechanisms
+  - Customizable evaluation metrics
 
 ## Requirements
 
@@ -54,28 +63,50 @@ pip install -r requirements.txt
 ```bash
 python src/SC_generator.py
 ```
-
-2. Data Preprocessing (for extracting the answer):
-```bash
-python src/data_cleaning.py 
 ```
 
-3. Feature Extraction:
+2. Feature Extraction:
 ```bash
 python src/CS_feature_extractor.py
 ```
 
-4. Run Experiments:
+3. Run Experiments:
 ```bash
 bash src/experiment.sh
 ```
 
-## Experiment Results
+## Important Notes
 
-The `experiment_collection` directory contains all experimental results presented in the paper, including:
-- Performance comparisons across different reasoning tasks
-- Efficiency metrics and sample usage statistics
-- Model comparisons and ablation studies
+1. **Getting Started**:
+   - Begin with `demo.ipynb` before running the full experiment script
+   - The notebook provides a comprehensive overview of the framework's capabilities
+
+2. **Feature Extraction Optimization**:
+   - Feature extraction can be computationally intensive
+   - For initial testing, use the provided sample CoTs
+   - Consider excluding "**_AGG" features to reduce processing time
+   - Feel free to customize `feature_extraction.py` for additional features (update related files accordingly)
+
+3. **Model Configuration**:
+   - Current implementation uses custom LR regression on test sets
+   - Coefficients are learned from training data
+   - Options for improvement:
+     - Train custom models for coefficient optimization (see `demo.ipynb`)
+     - Implement more complex models via `IDV_CS_Model.py`
+
+## Citation
+
+If you use this code in your research, please cite our paper:
+```bibtex
+@inproceedings{
+anonymous2025rasc,
+title={{RASC}: Reasoning-Aware Self-Consistency for Efficient and Faithful {LLM} Reasoning},
+author={Guangya Wan, Yuqi Wu, Jie Chen, Sheng Li},
+booktitle={The 2025 Annual Conference of the Nations of the Americas Chapter of the ACL},
+year={2025},
+url={https://openreview.net/forum?id=ykXCRWB8DR}
+}
+
 
 ## Citation
 
@@ -93,7 +124,7 @@ url={https://openreview.net/forum?id=ykXCRWB8DR}
 
 ## Contact
 
-For questions and feedback, please open an issue in this repository.
+For questions and feedback, please open an issue in this repository or sent an email to wxr9et@virginia.edu for inquiry.
 
 ## Acknowledgments
 

@@ -100,15 +100,16 @@ def CS_early_stopping(df, threshold, N=5, stop_mechanism='PositiveN'):
 if __name__ == '__main__':
     # Read JSON data
     DATA_DIR = '../data/CoT_data/new_extracted_data/'
-    file_path = os.path.join(DATA_DIR, 'final_extracted_train.json')
+    file_path = os.path.join(DATA_DIR, 'test.json')
     df_with_features = pd.read_json(file_path, lines=True)
     # Define the features list
-    feature_li = ['LEN', 'QUA_IM', 'SIM_COT_BIGRAM', 'SIM_AC_BIGRAM', 'SIM_INPUT', 'STEP_COUNT', 'STEP_COHERENCE'] # use 8 features as examples
+    feature_li = ['LEN', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT',  'STEP_COHERENCE'] # use 8 features as examples
     # feature_li = ['LEN', 'QUA_IM', 'DIF_IV', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT',  'STEP_COHERENCE'] 
-    # coe = [0, -10, -2, 3, 1, 2, 1 , -2 , -3]
-    # intercept = -1
-    # df_cs = customized_LR_model(df_with_features,feature_li,coe, intercept, report_auroc=True)
-    df_cs = trained_LR_model(df_with_features, feature_li, report_auroc=False)
+    coe = [-0.17887917, -2.47526597,  2.57520725,  0.68997781,
+        1.65216567, -2.61836719, -0.04469021,  3.54958297]
+    intercept = -0.6
+    df_cs = customized_LR_model(df_with_features,feature_li,coe, intercept, report_auroc=True)
+    # df_cs = trained_LR_model(df_with_features, feature_li, report_auroc=False)
 
     N = int(sys.argv[2])
     threshold = float(sys.argv[1])

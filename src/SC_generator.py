@@ -39,7 +39,7 @@ def save_results_to_csv(result_row, llm_config):
     
     # Add prompt file name to the results
     result_row['Prompt_File'] = os.path.basename(llm_config['prompt_link'])
-    
+    result_row['Model'] = llm_config["model"]
     if not os.path.isfile(output_file):
         # Create new file with header
         result_row.to_frame().T.to_csv(output_file, mode='a', index=False, header=True)
@@ -129,11 +129,11 @@ if __name__ == '__main__':
     # Data configuration
     parser.add_argument('--data_dir', default='../data/question_data/preprocessed/',
                       help='Directory containing the question datasets')
-    parser.add_argument('--dataset_name', default='GSM8K',
+    parser.add_argument('--dataset_name', default='MMLU',
                       help='Name of the dataset to evaluate')
-    parser.add_argument('--num_samples', type=int, default=10,
+    parser.add_argument('--num_samples', type=int, default=2,
                       help='Number of questions to evaluate (default: 100)')
-    parser.add_argument('--num_cot', type=int, default=4,
+    parser.add_argument('--num_cot', type=int, default=2,
                       help='Number of chain-of-thought generations per question (default: 40)')
     
     # LLM configuration

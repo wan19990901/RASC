@@ -261,7 +261,7 @@ def extract_feature(df, features_li):
 if __name__ == '__main__':
     
     DATA_DIR = "../data/Evaluation_CoTs/sample_data/"
-    input_file_path = os.path.join(DATA_DIR, 'GSM8K_GPT4o_mini.csv') # Change to other files for replication
+    input_file_path = os.path.join(DATA_DIR, 'GSM8K_GPT4o_mini_test.csv') # Change to other files for replication
     # DATA_DIR = "../data/Evaluation_CoTs/gpt-4o-mini" 
     # input_file_path = os.path.join(DATA_DIR, 'GSM8K_LTM.csv')
     df = pd.read_csv(input_file_path).reset_index(drop=True)
