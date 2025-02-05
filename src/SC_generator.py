@@ -131,9 +131,9 @@ if __name__ == '__main__':
                       help='Directory containing the question datasets')
     parser.add_argument('--dataset_name', default='MMLU',
                       help='Name of the dataset to evaluate')
-    parser.add_argument('--num_samples', type=int, default=2,
+    parser.add_argument('--num_samples', type=int, default=100,
                       help='Number of questions to evaluate (default: 100)')
-    parser.add_argument('--num_cot', type=int, default=2,
+    parser.add_argument('--num_cot', type=int, default=40,
                       help='Number of chain-of-thought generations per question (default: 40)')
     
     # LLM configuration
