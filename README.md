@@ -94,27 +94,14 @@ bash src/experiment.sh
      - Train custom models for coefficient optimization (see `demo.ipynb`)
      - Implement more complex models via `IDV_CS_Model.py`
 
-## Citation
-
-If you use this code in your research, please cite our paper:
-```bibtex
-@inproceedings{
-anonymous2025rasc,
-title={{RASC}: Reasoning-Aware Self-Consistency for Efficient and Faithful {LLM} Reasoning},
-author={Guangya Wan, Yuqi Wu, Jie Chen, Sheng Li},
-booktitle={The 2025 Annual Conference of the Nations of the Americas Chapter of the ACL},
-year={2025},
-url={https://openreview.net/forum?id=ykXCRWB8DR}
-}
-
 
 ## Citation
 
 If you use this code in your research, please cite our paper:
 ```bibtex
 @inproceedings{
-anonymous2025rasc,
-title={{RASC}: Reasoning-Aware Self-Consistency for Efficient and Faithful {LLM} Reasoning},
+wan2025reasoningawareselfconsistencyleveraging,
+title={Reasoning Aware Self-Consistency: Leveraging Reasoning Paths for Efficient LLM Sampling},
 author={Guangya Wan, Yuqi Wu, Jie Chen, Sheng Li},
 booktitle={The 2025 Annual Conference of the Nations of the Americas Chapter of the ACL},
 year={2025},
