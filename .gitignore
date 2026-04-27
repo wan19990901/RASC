@@ -12,8 +12,14 @@
 # Data files
 *.csv
 *.json
+!src/prompt_file/*.json
+!configs/*.json
 
 # API key files
 api_key*.txt
+
+# Python cache files
+__pycache__/
+*.pyc
 
 data/Evaluation_CoTs/final.csv

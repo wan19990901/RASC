@@ -1,0 +1,58 @@
+{
+  "output_root": "../result/reproduction_runs",
+  "shared": {
+    "data_path": "../data/Evaluation_CoTs/sample_data/new_extracted_data/test.json",
+    "score_mode": "custom",
+    "feature_list": [
+      "LEN",
+      "QUA_IM",
+      "DIF_IV",
+      "SIM_COT_BIGRAM",
+      "SIM_COT_AGG",
+      "SIM_AC_BIGRAM",
+      "SIM_AC_AGG",
+      "SIM_INPUT",
+      "STEP_COUNT",
+      "STEP_COHERENCE"
+    ],
+    "custom_intercept": -0.6,
+    "custom_coefficients": [
+      -0.17887917,
+      -2.47526597,
+      2.57520725,
+      0.68997781,
+      1.65216567,
+      -2.61836719,
+      -0.04469021,
+      3.54958297,
+      0.0,
+      0.0
+    ]
+  },
+  "experiments": [
+    {
+      "name": "sample_gsm8k_zero_cot_grid",
+      "dataset": "GSM8K-sample",
+      "model": "gpt-4o",
+      "prompting": "zero_cot",
+      "thresholds": [0.3, 0.5, 0.7],
+      "buffer_sizes": [3, 5]
+    },
+    {
+      "name": "sample_gsm8k_least_to_most_grid",
+      "dataset": "GSM8K-sample",
+      "model": "gpt-4o",
+      "prompting": "least_to_most",
+      "thresholds": [0.3, 0.5, 0.7],
+      "buffer_sizes": [3, 5]
+    },
+    {
+      "name": "sample_gsm8k_few_shot_grid",
+      "dataset": "GSM8K-sample",
+      "model": "gpt-4o",
+      "prompting": "few_shot",
+      "thresholds": [0.3, 0.5, 0.7],
+      "buffer_sizes": [3, 5]
+    }
+  ]
+}

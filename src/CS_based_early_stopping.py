@@ -1,123 +1,323 @@
-from IDV_CS_Model import *
-import sys
-import time
+import argparse
+import os
+from collections import Counter
 
-def normalize_cs(cs_li, threshold):
-    cs_arr = np.array(cs_li)
-    normalized_cs = [(cs-threshold)/(1-threshold) if cs > threshold else (cs-threshold)/(threshold) for cs in cs_arr]
-    return np.array(normalized_cs)
+import pandas as pd
 
-
-def stop_con2(individual_cs, buffer_size=5):
-    buffer = []
-    for idx, cs in enumerate(individual_cs):
-        if cs > 0:
-            buffer.append(idx)
-        if len(buffer) == buffer_size:
-            return buffer[-1]
+from IDV_CS_Model import customized_LR_model, trained_LR_model
+from utils import calculate_ASC_correctness, calculate_ES_correctness, calculate_SC_correctness
 
 
-def consecutive_scores_above_threshold(scores, answers, threshold, n):
-    for i in range(len(scores) - n + 1):
-        # Check if all the next 'n' scores are above the threshold
-        if all(score > threshold for score in scores[i:i + n]):
-            # Check if all answers in this range are the same
-            if len(set(answers[i:i + n])) == 1:
-                return True, i + n, answers[i]
-    return False, len(scores), None  # If no consecutive scores found or answers differ
+def normalize_answer(answer):
+    try:
+        return float(answer)
+    except (TypeError, ValueError):
+        return str(answer).strip().lower()
 
 
-def CS_early_stopping(df, threshold, N=5, stop_mechanism='PositiveN'):
-    def compare_answers(answer1, answer2):
-        try:
-            return float(answer1) == float(answer2)
-        except ValueError:
-            return str(answer1).strip().lower() == str(answer2).strip().lower()
+def compare_answers(answer1, answer2):
+    return normalize_answer(answer1) == normalize_answer(answer2)
 
-    CS_Answer = []
-    CS_correctness = []
-    CS_steps = []
 
-    if stop_mechanism == 'PositiveN':
-        for row_idx in range(len(df)):
-            test_row = df.iloc[row_idx]
-            individual_cs = normalize_cs(test_row['confidence_score'], threshold)
-            stop_idx = stop_con2(individual_cs, buffer_size=N)
+def build_high_quality_buffer(row, threshold, capacity):
+    buffer_entries = []
+    total_seen = 0
 
-            num_of_steps = stop_idx + 1 if stop_idx else 40
-            answers = test_row['CoT answers'][:num_of_steps]
-            scores = individual_cs[:num_of_steps]
-            weighted_votes = Counter()
+    cot_cols = [col for col in row.index if col.startswith("CoT_")]
 
-            for answer, score in zip(answers, scores):
-                if score > 0:
-                    weighted_votes[answer] += score
+    for idx, (answer, score) in enumerate(zip(row["CoT answers"], row["confidence_score"])):
+        total_seen = idx + 1
+        cot_col = f"CoT_{idx}"
+        rationale = row[cot_col] if cot_col in cot_cols else None
 
-            if len(weighted_votes) == 0:
-                for answer, score in zip(answers, scores):
-                    weighted_votes[answer] += score
+        if score >= threshold:
+            buffer_entries.append(
+                {
+                    "step": idx,
+                    "answer": answer,
+                    "normalized_answer": normalize_answer(answer),
+                    "score": score,
+                    "rationale": rationale,
+                }
+            )
 
-            result = max(weighted_votes, key=weighted_votes.get)
-            CS_Answer.append(result)
-            CS_correctness.append(1 if compare_answers(result, test_row['correct answer']) else 0)
-            CS_steps.append(num_of_steps)
+        if len(buffer_entries) >= capacity:
+            break
 
-    elif stop_mechanism == 'ConsistencyN':
-        for idx, row in df.iterrows():
-            confidence_scores = row['confidence_score']
-            answers = row['CoT answers']
-            found, num_of_steps, answer = consecutive_scores_above_threshold(confidence_scores, answers, threshold, N)
+    return buffer_entries, total_seen
 
-            if found:
-                CS_Answer.append(answer)
-                CS_correctness.append(1 if compare_answers(answer, row['correct answer']) else 0)
-                CS_steps.append(num_of_steps)
-            else:
-                CS_Answer.append(None)
-                CS_correctness.append(row['SC_correctness'])
-                CS_steps.append(num_of_steps)
-    df['CS_Answer'] = CS_Answer
-    df['CS_correctness'] = CS_correctness
-    df['CS_steps'] = CS_steps
+
+def select_answer_and_rationale(buffer_entries, fallback_entries=None):
+    candidates = buffer_entries if buffer_entries else (fallback_entries or [])
+    if not candidates:
+        return None, None, None
+
+    weighted_votes = Counter()
+    for entry in candidates:
+        weighted_votes[entry["normalized_answer"]] += entry["score"]
+
+    best_answer = max(weighted_votes, key=weighted_votes.get)
+    supporting_entries = [
+        entry for entry in candidates if entry["normalized_answer"] == best_answer
+    ]
+    best_entry = max(supporting_entries, key=lambda entry: entry["score"])
+
+    return best_entry["answer"], best_entry["rationale"], best_entry["score"]
+
+
+def build_fallback_entries(row):
+    fallback_entries = []
+    cot_cols = [col for col in row.index if col.startswith("CoT_")]
+    for idx, (answer, score) in enumerate(zip(row["CoT answers"], row["confidence_score"])):
+        cot_col = f"CoT_{idx}"
+        rationale = row[cot_col] if cot_col in cot_cols else None
+        fallback_entries.append(
+            {
+                "step": idx,
+                "answer": answer,
+                "normalized_answer": normalize_answer(answer),
+                "score": score,
+                "rationale": rationale,
+            }
+        )
+    return fallback_entries
+
+
+def CS_early_stopping(df, threshold, N=5):
+    cs_answers = []
+    cs_correctness = []
+    cs_steps = []
+    cs_best_rp = []
+    cs_best_score = []
+    cs_buffer_size = []
+    cs_stop_reason = []
+
+    for _, row in df.iterrows():
+        buffer_entries, num_of_steps = build_high_quality_buffer(row, threshold, N)
+        fallback_entries = build_fallback_entries(row)
+
+        selected_answer, selected_rationale, selected_score = select_answer_and_rationale(
+            buffer_entries,
+            fallback_entries=fallback_entries,
+        )
+
+        cs_answers.append(selected_answer)
+        cs_best_rp.append(selected_rationale)
+        cs_best_score.append(selected_score)
+        cs_steps.append(num_of_steps)
+        cs_buffer_size.append(len(buffer_entries))
+        cs_stop_reason.append(
+            "buffer_full" if len(buffer_entries) >= N else "max_samples_reached"
+        )
+        cs_correctness.append(
+            1 if compare_answers(selected_answer, row["correct answer"]) else 0
+        )
+
+    df["CS_Answer"] = cs_answers
+    df["CS_correctness"] = cs_correctness
+    df["CS_steps"] = cs_steps
+    df["CS_Best_RP"] = cs_best_rp
+    df["CS_Best_Score"] = cs_best_score
+    df["CS_buffer_size"] = cs_buffer_size
+    df["CS_stop_reason"] = cs_stop_reason
 
     df_model_comp_dict = {
-        'SC_ACC': df.SC_correctness.sum() / len(df),
-        'ES_ACC': df.ES_correctness.sum() / len(df),
-        'CS_ACC': df.CS_correctness.sum() / len(df),
-        'SC_Avg_Steps': 40,
-        'ES_Avg_Steps': df.ES_steps.mean(),
-        'CS_Avg_Steps': df.CS_steps.mean(),
-        'ASC_Avg_Steps': df.asc_steps.mean(),
-        'ASC_ACC': df.asc_correctness.sum() / len(df)
+        "SC_ACC": df.SC_correctness.sum() / len(df),
+        "ES_ACC": df.ES_correctness.sum() / len(df),
+        "CS_ACC": df.CS_correctness.sum() / len(df),
+        "SC_Avg_Steps": 40,
+        "ES_Avg_Steps": df.ES_steps.mean(),
+        "CS_Avg_Steps": df.CS_steps.mean(),
+        "ASC_Avg_Steps": df.asc_steps.mean(),
+        "ASC_ACC": df.asc_correctness.sum() / len(df),
     }
-    # Print each metric
     for key, val in df_model_comp_dict.items():
         print(f"{key} : {val}")
 
     return df
 
 
-if __name__ == '__main__':
-    # Read JSON data
-    DATA_DIR = '../data/CoT_data/new_extracted_data/'
-    file_path = os.path.join(DATA_DIR, 'test.json')
-    df_with_features = pd.read_json(file_path, lines=True)
-    # Define the features list
-    feature_li = ['LEN', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT',  'STEP_COHERENCE'] # use 8 features as examples
-    # feature_li = ['LEN', 'QUA_IM', 'DIF_IV', 'SIM_COT_BIGRAM', 'SIM_COT_AGG', 'SIM_AC_BIGRAM', 'SIM_AC_AGG', 'SIM_INPUT', 'STEP_COUNT',  'STEP_COHERENCE'] 
-    coe = [-0.17887917, -2.47526597,  2.57520725,  0.68997781,
-        1.65216567, -2.61836719, -0.04469021,  3.54958297]
-    intercept = -0.6
-    df_cs = customized_LR_model(df_with_features,feature_li,coe, intercept, report_auroc=True)
-    # df_cs = trained_LR_model(df_with_features, feature_li, report_auroc=False)
+def evaluate_rasc_pipeline(
+    data_path,
+    threshold,
+    buffer_size=5,
+    feature_list=None,
+    score_mode="custom",
+    custom_intercept=-0.6,
+    custom_coefficients=None,
+    output_path=None,
+):
+    if feature_list is None:
+        feature_list = [
+            "LEN",
+            "QUA_IM",
+            "DIF_IV",
+            "SIM_COT_BIGRAM",
+            "SIM_COT_AGG",
+            "SIM_AC_BIGRAM",
+            "SIM_AC_AGG",
+            "SIM_INPUT",
+            "STEP_COUNT",
+            "STEP_COHERENCE",
+        ]
+    if custom_coefficients is None:
+        custom_coefficients = [
+            -0.17887917,
+            -2.47526597,
+            2.57520725,
+            0.68997781,
+            1.65216567,
+            -2.61836719,
+            -0.04469021,
+            3.54958297,
+            0.0,
+            0.0,
+        ]
 
-    N = int(sys.argv[2])
-    threshold = float(sys.argv[1])
+    df_with_features = pd.read_json(data_path, lines=True)
 
-    # Applying early stopping mechanism
-    df_final = CS_early_stopping(df=df_cs, threshold=threshold, N=N)
+    if score_mode == "trained":
+        df_cs = trained_LR_model(
+            df_with_features,
+            feature_list,
+            report_auroc=False,
+        )
+    else:
+        if len(custom_coefficients) != len(feature_list):
+            raise ValueError(
+                "The number of custom coefficients must match the feature list length."
+            )
+        df_cs = customized_LR_model(
+            df_with_features,
+            feature_list,
+            custom_coefficients,
+            custom_intercept,
+            report_auroc=False,
+        )
 
-    # Saving the resulting DataFrame
-    file_name = f"df_threshold_{threshold}_N_{N}.csv"
-    storage_dir = '../result/experiments_output/test_N_threshold/'
-    df_final.to_csv(os.path.join(storage_dir, file_name), index=False)
+    df_cs = calculate_SC_correctness(df_cs)
+    df_cs = calculate_ES_correctness(df_cs, window_size=5)
+    df_cs = calculate_ASC_correctness(df_cs)
+    df_final = CS_early_stopping(df=df_cs, threshold=threshold, N=buffer_size)
+
+    summary = {
+        "threshold": threshold,
+        "buffer_size": buffer_size,
+        "score_mode": score_mode,
+        "num_questions": len(df_final),
+        "SC_ACC": df_final["SC_correctness"].mean(),
+        "ES_ACC": df_final["ES_correctness"].mean(),
+        "CS_ACC": df_final["CS_correctness"].mean(),
+        "ASC_ACC": df_final["asc_correctness"].mean(),
+        "SC_Avg_Steps": 40,
+        "ES_Avg_Steps": df_final["ES_steps"].mean(),
+        "CS_Avg_Steps": df_final["CS_steps"].mean(),
+        "ASC_Avg_Steps": df_final["asc_steps"].mean(),
+    }
+
+    if output_path is not None:
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+        df_final.to_csv(output_path, index=False)
+        print(f"Saved results to: {output_path}")
+
+    return df_final, summary
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run paper-faithful RASC early stopping on extracted features."
+    )
+    parser.add_argument("--data_path", required=True, help="Path to extracted feature JSONL.")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        required=True,
+        help="Sufficiency-score threshold T from the paper.",
+    )
+    parser.add_argument(
+        "--buffer_size",
+        type=int,
+        default=5,
+        help="High-quality buffer capacity N from the paper.",
+    )
+    parser.add_argument(
+        "--output_path",
+        default=None,
+        help="Optional CSV output path. Defaults to result/experiments_output/test_N_threshold/df_threshold_<T>_N_<N>.csv",
+    )
+    parser.add_argument(
+        "--feature_list",
+        nargs="+",
+        default=[
+            "LEN",
+            "QUA_IM",
+            "DIF_IV",
+            "SIM_COT_BIGRAM",
+            "SIM_COT_AGG",
+            "SIM_AC_BIGRAM",
+            "SIM_AC_AGG",
+            "SIM_INPUT",
+            "STEP_COUNT",
+            "STEP_COHERENCE",
+        ],
+        help="Feature columns used for sufficiency scoring.",
+    )
+    parser.add_argument(
+        "--score_mode",
+        choices=["custom", "trained"],
+        default="custom",
+        help="Use paper/demo coefficients or fit a scorer on a train split.",
+    )
+    parser.add_argument(
+        "--custom_intercept",
+        type=float,
+        default=-0.6,
+        help="Intercept for custom logistic scoring.",
+    )
+    parser.add_argument(
+        "--custom_coefficients",
+        nargs="+",
+        type=float,
+        default=[
+            -0.17887917,
+            -2.47526597,
+            2.57520725,
+            0.68997781,
+            1.65216567,
+            -2.61836719,
+            -0.04469021,
+            3.54958297,
+            0.0,
+            0.0,
+        ],
+        help="Coefficients for custom logistic scoring. Must match feature_list length.",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    output_path = args.output_path
+    if output_path is None:
+        storage_dir = "../result/experiments_output/test_N_threshold/"
+        os.makedirs(storage_dir, exist_ok=True)
+        output_path = os.path.join(
+            storage_dir,
+            f"df_threshold_{args.threshold}_N_{args.buffer_size}.csv",
+        )
+    evaluate_rasc_pipeline(
+        data_path=args.data_path,
+        threshold=args.threshold,
+        buffer_size=args.buffer_size,
+        feature_list=args.feature_list,
+        score_mode=args.score_mode,
+        custom_intercept=args.custom_intercept,
+        custom_coefficients=args.custom_coefficients,
+        output_path=output_path,
+    )
+
+
+if __name__ == "__main__":
+    main()
